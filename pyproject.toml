@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-frontier"
+version = "0.1.0"
+description = "Pick the cheapest LLM that still passes your eval. Cost/quality frontier over your own labeled task."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+api = ["openai>=1.0", "anthropic>=0.39"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+llmfrontier = "llmfrontier.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

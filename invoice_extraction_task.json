@@ -1,0 +1,548 @@
+{
+  "name": "invoice_extraction_hard",
+  "task_type": "extraction",
+  "prompt_template": "Extract these fields from the invoice text as JSON with keys invoice_number, vendor, quantity, total_usd. The text may contain noise, multiple amounts, and decoy line items -- extract the PRIMARY amount due (the subtotal/line total/amount due), not handling or secondary charges. quantity and total_usd must be strings with no units or currency symbols. Respond with only the JSON object.\nText: {input}\nJSON:",
+  "subset_match": false,
+  "examples": [
+    {
+      "input": "Bill from Tyrell Corp. Ref INV-9362. Date 2025-06-18. Items: 10 units copier toner. SUBTOTAL DUE: 27.30. PO reference attached separately.",
+      "expected": {
+        "invoice_number": "INV-9362",
+        "vendor": "Tyrell Corp",
+        "quantity": "10",
+        "total_usd": "27.30"
+      }
+    },
+    {
+      "input": "Wonka & Sons -- invoice no INV-3194 dated 2025-03-24. Primary line: 10x safety gloves = 126.00 USD. This invoice was generated automatically.",
+      "expected": {
+        "invoice_number": "INV-3194",
+        "vendor": "Wonka & Sons",
+        "quantity": "10",
+        "total_usd": "126.00"
+      }
+    },
+    {
+      "input": "Thank you for your business. Invoice INV75690 | Vendor: Gekko Holdings | 2025-01-12. Line total for 36 office chairs: 295.92 USD (this is the amount due).",
+      "expected": {
+        "invoice_number": "INV75690",
+        "vendor": "Gekko Holdings",
+        "quantity": "36",
+        "total_usd": "295.92"
+      }
+    },
+    {
+      "input": "Wonka & Sons -- invoice no INV87249 dated 2025-09-02. Primary line: 100x safety gloves = US$ 1063.00. Thank you for your business.",
+      "expected": {
+        "invoice_number": "INV87249",
+        "vendor": "Wonka & Sons",
+        "quantity": "100",
+        "total_usd": "1063.00"
+      }
+    },
+    {
+      "input": "Umbrella Inc -- invoice no INV62079 dated 2025-04-14. Additional handling: 1 x USB hubs, USD 7.42. Primary line: 7x hydraulic seals = US$ 142.03. Contact accounts@vendor.com for queries.",
+      "expected": {
+        "invoice_number": "INV62079",
+        "vendor": "Umbrella Inc",
+        "quantity": "7",
+        "total_usd": "142.03"
+      }
+    },
+    {
+      "input": "Thank you for your business. Invoice 9660-A | Vendor: Umbrella Inc | 2025-06-25. Additional handling: 4 x filter units, 17.94 USD. Line total for 36 ink cartridges: US$ 168.48 (this is the amount due).",
+      "expected": {
+        "invoice_number": "9660-A",
+        "vendor": "Umbrella Inc",
+        "quantity": "36",
+        "total_usd": "168.48"
+      }
+    },
+    {
+      "input": "Bill from Initech LLC. Ref IN/728/2025. Date 2025-09-28. Items: 200 units safety gloves. SUBTOTAL DUE: USD 2,662.00. Thank you for your business.",
+      "expected": {
+        "invoice_number": "IN/728/2025",
+        "vendor": "Initech LLC",
+        "quantity": "200",
+        "total_usd": "2662.00"
+      }
+    },
+    {
+      "input": "This invoice was generated automatically. Invoice IN/347/2025 | Vendor: Acme Corp | 2025-10-06. Additional handling: 2 x filter units, USD 17.91. Line total for 24 laptop docks: $413.04 (this is the amount due).",
+      "expected": {
+        "invoice_number": "IN/347/2025",
+        "vendor": "Acme Corp",
+        "quantity": "24",
+        "total_usd": "413.04"
+      }
+    },
+    {
+      "input": "Contact accounts@vendor.com for queries. Invoice INV39239 | Vendor: Wonka & Sons | 2025-03-17. Additional handling: 1 x label rolls, $8.96. Line total for 12 sensor modules: 265.92 USD (this is the amount due).",
+      "expected": {
+        "invoice_number": "INV39239",
+        "vendor": "Wonka & Sons",
+        "quantity": "12",
+        "total_usd": "265.92"
+      }
+    },
+    {
+      "input": "Tyrell Corp -- invoice no IN/334/2025 dated 2025-07-01. Additional handling: 3 x copier toner, 24.48 USD. Primary line: 10x ink cartridges = 301.60 USD. This invoice was generated automatically.",
+      "expected": {
+        "invoice_number": "IN/334/2025",
+        "vendor": "Tyrell Corp",
+        "quantity": "10",
+        "total_usd": "301.60"
+      }
+    },
+    {
+      "input": "Bill from Cyberdyne Systems. Ref 1075-A. Date 2025-11-06. Items: 5 units office chairs. SUBTOTAL DUE: $58.90. PO reference attached separately.",
+      "expected": {
+        "invoice_number": "1075-A",
+        "vendor": "Cyberdyne Systems",
+        "quantity": "5",
+        "total_usd": "58.90"
+      }
+    },
+    {
+      "input": "Wayne Supplies Co -- invoice no IN/874/2025 dated 2025-11-24. Primary line: 12x safety gloves = US$ 291.84. PO reference attached separately.",
+      "expected": {
+        "invoice_number": "IN/874/2025",
+        "vendor": "Wayne Supplies Co",
+        "quantity": "12",
+        "total_usd": "291.84"
+      }
+    },
+    {
+      "input": "Bill from Massive Dynamic. Ref INV92298. Date 2025-07-21. Items: 50 units USB hubs. SUBTOTAL DUE: 1,188.50 USD. Contact accounts@vendor.com for queries.",
+      "expected": {
+        "invoice_number": "INV92298",
+        "vendor": "Massive Dynamic",
+        "quantity": "50",
+        "total_usd": "1188.50"
+      }
+    },
+    {
+      "input": "Cyberdyne Systems -- invoice no INV-6418 dated 2025-09-21. Primary line: 7x steel bolts = 120.75. This invoice was generated automatically.",
+      "expected": {
+        "invoice_number": "INV-6418",
+        "vendor": "Cyberdyne Systems",
+        "quantity": "7",
+        "total_usd": "120.75"
+      }
+    },
+    {
+      "input": "This invoice was generated automatically. Invoice INV65438 | Vendor: Wonka & Sons | 2025-08-11. Line total for 36 USB hubs: 946.80 (this is the amount due).",
+      "expected": {
+        "invoice_number": "INV65438",
+        "vendor": "Wonka & Sons",
+        "quantity": "36",
+        "total_usd": "946.80"
+      }
+    },
+    {
+      "input": "Thank you for your business. Invoice INV27881 | Vendor: Stark Industrial | 2025-02-13. Line total for 12 label rolls: US$ 222.48 (this is the amount due).",
+      "expected": {
+        "invoice_number": "INV27881",
+        "vendor": "Stark Industrial",
+        "quantity": "12",
+        "total_usd": "222.48"
+      }
+    },
+    {
+      "input": "Hooli Pte -- invoice no INV27673 dated 2025-03-18. Primary line: 36x office chairs = US$ 213.84. Terms: Net 30. Late fees apply.",
+      "expected": {
+        "invoice_number": "INV27673",
+        "vendor": "Hooli Pte",
+        "quantity": "36",
+        "total_usd": "213.84"
+      }
+    },
+    {
+      "input": "Globex Ltd -- invoice no INV-8368 dated 2025-07-04. Additional handling: 2 x cable reels, 13.60. Primary line: 12x desk lamps = $347.64. Terms: Net 30. Late fees apply.",
+      "expected": {
+        "invoice_number": "INV-8368",
+        "vendor": "Globex Ltd",
+        "quantity": "12",
+        "total_usd": "347.64"
+      }
+    },
+    {
+      "input": "Umbrella Inc -- invoice no IN/326/2025 dated 2025-08-12. Primary line: 36x hydraulic seals = $262.08. Terms: Net 30. Late fees apply.",
+      "expected": {
+        "invoice_number": "IN/326/2025",
+        "vendor": "Umbrella Inc",
+        "quantity": "36",
+        "total_usd": "262.08"
+      }
+    },
+    {
+      "input": "Please remit payment to account 8842-1190. Invoice INV-6361 | Vendor: Hooli Pte | 2025-05-14. Additional handling: 3 x laptop docks, 28.14. Line total for 200 safety gloves: $3,030.00 (this is the amount due).",
+      "expected": {
+        "invoice_number": "INV-6361",
+        "vendor": "Hooli Pte",
+        "quantity": "200",
+        "total_usd": "3030.00"
+      }
+    },
+    {
+      "input": "This invoice was generated automatically. Invoice 4335-A | Vendor: Wayne Supplies Co | 2025-06-24. Additional handling: 3 x steel bolts, $17.92. Line total for 5 laptop docks: USD 17.05 (this is the amount due).",
+      "expected": {
+        "invoice_number": "4335-A",
+        "vendor": "Wayne Supplies Co",
+        "quantity": "5",
+        "total_usd": "17.05"
+      }
+    },
+    {
+      "input": "Umbrella Inc -- invoice no IN/600/2025 dated 2025-07-23. Primary line: 10x filter units = 297.60 USD. PO reference attached separately.",
+      "expected": {
+        "invoice_number": "IN/600/2025",
+        "vendor": "Umbrella Inc",
+        "quantity": "10",
+        "total_usd": "297.60"
+      }
+    },
+    {
+      "input": "Gekko Holdings -- invoice no INV10784 dated 2025-04-02. Primary line: 200x laptop docks = $2,800.00. Thank you for your business.",
+      "expected": {
+        "invoice_number": "INV10784",
+        "vendor": "Gekko Holdings",
+        "quantity": "200",
+        "total_usd": "2800.00"
+      }
+    },
+    {
+      "input": "Bill from Globex Ltd. Ref IN/285/2025. Date 2025-06-09. Items: 10 units laptop docks. SUBTOTAL DUE: USD 399.60. Terms: Net 30. Late fees apply.",
+      "expected": {
+        "invoice_number": "IN/285/2025",
+        "vendor": "Globex Ltd",
+        "quantity": "10",
+        "total_usd": "399.60"
+      }
+    },
+    {
+      "input": "Stark Industrial -- invoice no 5180-A dated 2025-09-27. Primary line: 100x desk lamps = 1593.00. This invoice was generated automatically.",
+      "expected": {
+        "invoice_number": "5180-A",
+        "vendor": "Stark Industrial",
+        "quantity": "100",
+        "total_usd": "1593.00"
+      }
+    },
+    {
+      "input": "Please remit payment to account 8842-1190. Invoice 7599-A | Vendor: Tyrell Corp | 2025-10-11. Additional handling: 4 x label rolls, 25.44. Line total for 5 safety gloves: $51.30 (this is the amount due).",
+      "expected": {
+        "invoice_number": "7599-A",
+        "vendor": "Tyrell Corp",
+        "quantity": "5",
+        "total_usd": "51.30"
+      }
+    },
+    {
+      "input": "Cyberdyne Systems -- invoice no INV-8286 dated 2025-12-03. Primary line: 5x sensor modules = 14.85 USD. Thank you for your business.",
+      "expected": {
+        "invoice_number": "INV-8286",
+        "vendor": "Cyberdyne Systems",
+        "quantity": "5",
+        "total_usd": "14.85"
+      }
+    },
+    {
+      "input": "Bill from Wayne Supplies Co. Ref IN/987/2025. Date 2025-03-19. Items: 10 units filter units. SUBTOTAL DUE: $153.60. Contact accounts@vendor.com for queries.",
+      "expected": {
+        "invoice_number": "IN/987/2025",
+        "vendor": "Wayne Supplies Co",
+        "quantity": "10",
+        "total_usd": "153.60"
+      }
+    },
+    {
+      "input": "Please remit payment to account 8842-1190. Invoice INV99885 | Vendor: Massive Dynamic | 2025-03-03. Line total for 7 desk lamps: 273.28 USD (this is the amount due).",
+      "expected": {
+        "invoice_number": "INV99885",
+        "vendor": "Massive Dynamic",
+        "quantity": "7",
+        "total_usd": "273.28"
+      }
+    },
+    {
+      "input": "Acme Corp -- invoice no IN/608/2025 dated 2025-08-11. Primary line: 50x label rolls = 1629.00. Please remit payment to account 8842-1190.",
+      "expected": {
+        "invoice_number": "IN/608/2025",
+        "vendor": "Acme Corp",
+        "quantity": "50",
+        "total_usd": "1629.00"
+      }
+    },
+    {
+      "input": "Bill from Tyrell Corp. Ref 8074-A. Date 2025-11-24. Items: 10 units label rolls. SUBTOTAL DUE: US$ 73.00. Terms: Net 30. Late fees apply.",
+      "expected": {
+        "invoice_number": "8074-A",
+        "vendor": "Tyrell Corp",
+        "quantity": "10",
+        "total_usd": "73.00"
+      }
+    },
+    {
+      "input": "Pied Piper -- invoice no 1941-A dated 2025-03-09. Additional handling: 3 x copier toner, 9.60 USD. Primary line: 100x copier toner = USD 1,228.00. This invoice was generated automatically.",
+      "expected": {
+        "invoice_number": "1941-A",
+        "vendor": "Pied Piper",
+        "quantity": "100",
+        "total_usd": "1228.00"
+      }
+    },
+    {
+      "input": "Bill from Wayne Supplies Co. Ref INV-6029. Date 2025-04-16. Items: 144 units laptop docks. Additional handling: 2 x USB hubs, 18.41. SUBTOTAL DUE: $1,071.36. Please remit payment to account 8842-1190.",
+      "expected": {
+        "invoice_number": "INV-6029",
+        "vendor": "Wayne Supplies Co",
+        "quantity": "144",
+        "total_usd": "1071.36"
+      }
+    },
+    {
+      "input": "Bill from Stark Industrial. Ref INV36312. Date 2025-01-16. Items: 24 units label rolls. SUBTOTAL DUE: 371.04 USD. This invoice was generated automatically.",
+      "expected": {
+        "invoice_number": "INV36312",
+        "vendor": "Stark Industrial",
+        "quantity": "24",
+        "total_usd": "371.04"
+      }
+    },
+    {
+      "input": "Initech LLC -- invoice no INV86983 dated 2025-12-26. Primary line: 5x laptop docks = 180.00. PO reference attached separately.",
+      "expected": {
+        "invoice_number": "INV86983",
+        "vendor": "Initech LLC",
+        "quantity": "5",
+        "total_usd": "180.00"
+      }
+    },
+    {
+      "input": "Bill from Pied Piper. Ref INV-7648. Date 2025-09-28. Items: 12 units laptop docks. SUBTOTAL DUE: $382.44. PO reference attached separately.",
+      "expected": {
+        "invoice_number": "INV-7648",
+        "vendor": "Pied Piper",
+        "quantity": "12",
+        "total_usd": "382.44"
+      }
+    },
+    {
+      "input": "Bill from Hooli Pte. Ref IN/986/2025. Date 2025-02-01. Items: 7 units desk lamps. Additional handling: 3 x cable reels, 21.85. SUBTOTAL DUE: US$ 228.48. Terms: Net 30. Late fees apply.",
+      "expected": {
+        "invoice_number": "IN/986/2025",
+        "vendor": "Hooli Pte",
+        "quantity": "7",
+        "total_usd": "228.48"
+      }
+    },
+    {
+      "input": "Bill from Globex Ltd. Ref INV47205. Date 2025-11-20. Items: 10 units label rolls. SUBTOTAL DUE: USD 91.80. PO reference attached separately.",
+      "expected": {
+        "invoice_number": "INV47205",
+        "vendor": "Globex Ltd",
+        "quantity": "10",
+        "total_usd": "91.80"
+      }
+    },
+    {
+      "input": "PO reference attached separately. Invoice IN/208/2025 | Vendor: Pied Piper | 2025-01-17. Line total for 12 laptop docks: USD 342.72 (this is the amount due).",
+      "expected": {
+        "invoice_number": "IN/208/2025",
+        "vendor": "Pied Piper",
+        "quantity": "12",
+        "total_usd": "342.72"
+      }
+    },
+    {
+      "input": "Wayne Supplies Co -- invoice no 4853-A dated 2025-05-03. Primary line: 12x copier toner = USD 468.12. Terms: Net 30. Late fees apply.",
+      "expected": {
+        "invoice_number": "4853-A",
+        "vendor": "Wayne Supplies Co",
+        "quantity": "12",
+        "total_usd": "468.12"
+      }
+    },
+    {
+      "input": "Terms: Net 30. Late fees apply. Invoice INV35291 | Vendor: Umbrella Inc | 2025-08-16. Additional handling: 2 x office chairs, US$ 10.98. Line total for 200 copier toner: USD 4,966.00 (this is the amount due).",
+      "expected": {
+        "invoice_number": "INV35291",
+        "vendor": "Umbrella Inc",
+        "quantity": "200",
+        "total_usd": "4966.00"
+      }
+    },
+    {
+      "input": "Gekko Holdings -- invoice no IN/950/2025 dated 2025-04-28. Primary line: 12x label rolls = $53.40. PO reference attached separately.",
+      "expected": {
+        "invoice_number": "IN/950/2025",
+        "vendor": "Gekko Holdings",
+        "quantity": "12",
+        "total_usd": "53.40"
+      }
+    },
+    {
+      "input": "Thank you for your business. Invoice 8426-A | Vendor: Gekko Holdings | 2025-06-16. Line total for 10 office chairs: US$ 269.60 (this is the amount due).",
+      "expected": {
+        "invoice_number": "8426-A",
+        "vendor": "Gekko Holdings",
+        "quantity": "10",
+        "total_usd": "269.60"
+      }
+    },
+    {
+      "input": "Umbrella Inc -- invoice no 8294-A dated 2025-04-21. Additional handling: 4 x copier toner, $20.84. Primary line: 24x desk lamps = 762.48 USD. This invoice was generated automatically.",
+      "expected": {
+        "invoice_number": "8294-A",
+        "vendor": "Umbrella Inc",
+        "quantity": "24",
+        "total_usd": "762.48"
+      }
+    },
+    {
+      "input": "Bill from Globex Ltd. Ref INV-7885. Date 2025-02-12. Items: 100 units desk lamps. SUBTOTAL DUE: USD 302.00. Terms: Net 30. Late fees apply.",
+      "expected": {
+        "invoice_number": "INV-7885",
+        "vendor": "Globex Ltd",
+        "quantity": "100",
+        "total_usd": "302.00"
+      }
+    },
+    {
+      "input": "Contact accounts@vendor.com for queries. Invoice 1728-A | Vendor: Wonka & Sons | 2025-11-07. Line total for 24 label rolls: 288.48 USD (this is the amount due).",
+      "expected": {
+        "invoice_number": "1728-A",
+        "vendor": "Wonka & Sons",
+        "quantity": "24",
+        "total_usd": "288.48"
+      }
+    },
+    {
+      "input": "Bill from Soylent Foods. Ref IN/744/2025. Date 2025-04-25. Items: 7 units safety gloves. Additional handling: 1 x ink cartridges, USD 4.69. SUBTOTAL DUE: USD 145.88. Contact accounts@vendor.com for queries.",
+      "expected": {
+        "invoice_number": "IN/744/2025",
+        "vendor": "Soylent Foods",
+        "quantity": "7",
+        "total_usd": "145.88"
+      }
+    },
+    {
+      "input": "Bill from Umbrella Inc. Ref IN/286/2025. Date 2025-01-18. Items: 144 units pallet wrap. SUBTOTAL DUE: USD 1,608.48. PO reference attached separately.",
+      "expected": {
+        "invoice_number": "IN/286/2025",
+        "vendor": "Umbrella Inc",
+        "quantity": "144",
+        "total_usd": "1608.48"
+      }
+    },
+    {
+      "input": "Bill from Cyberdyne Systems. Ref INV-4190. Date 2025-05-16. Items: 7 units laptop docks. SUBTOTAL DUE: US$ 172.76. PO reference attached separately.",
+      "expected": {
+        "invoice_number": "INV-4190",
+        "vendor": "Cyberdyne Systems",
+        "quantity": "7",
+        "total_usd": "172.76"
+      }
+    },
+    {
+      "input": "Thank you for your business. Invoice INV67117 | Vendor: Globex Ltd | 2025-04-05. Additional handling: 4 x filter units, USD 35.57. Line total for 200 desk lamps: 7,424.00 USD (this is the amount due).",
+      "expected": {
+        "invoice_number": "INV67117",
+        "vendor": "Globex Ltd",
+        "quantity": "200",
+        "total_usd": "7424.00"
+      }
+    },
+    {
+      "input": "Bill from Initech LLC. Ref INV55934. Date 2025-05-17. Items: 36 units safety gloves. SUBTOTAL DUE: $462.24. This invoice was generated automatically.",
+      "expected": {
+        "invoice_number": "INV55934",
+        "vendor": "Initech LLC",
+        "quantity": "36",
+        "total_usd": "462.24"
+      }
+    },
+    {
+      "input": "Acme Corp -- invoice no INV69254 dated 2025-11-02. Primary line: 200x pallet wrap = USD 6,500.00. Thank you for your business.",
+      "expected": {
+        "invoice_number": "INV69254",
+        "vendor": "Acme Corp",
+        "quantity": "200",
+        "total_usd": "6500.00"
+      }
+    },
+    {
+      "input": "Soylent Foods -- invoice no INV-2782 dated 2025-09-13. Primary line: 50x office chairs = USD 1,354.00. Contact accounts@vendor.com for queries.",
+      "expected": {
+        "invoice_number": "INV-2782",
+        "vendor": "Soylent Foods",
+        "quantity": "50",
+        "total_usd": "1354.00"
+      }
+    },
+    {
+      "input": "PO reference attached separately. Invoice 6130-A | Vendor: Cyberdyne Systems | 2025-03-14. Line total for 100 floor mats: $1,448.00 (this is the amount due).",
+      "expected": {
+        "invoice_number": "6130-A",
+        "vendor": "Cyberdyne Systems",
+        "quantity": "100",
+        "total_usd": "1448.00"
+      }
+    },
+    {
+      "input": "Bill from Gekko Holdings. Ref IN/231/2025. Date 2025-01-15. Items: 12 units copier toner. SUBTOTAL DUE: 69.00. Contact accounts@vendor.com for queries.",
+      "expected": {
+        "invoice_number": "IN/231/2025",
+        "vendor": "Gekko Holdings",
+        "quantity": "12",
+        "total_usd": "69.00"
+      }
+    },
+    {
+      "input": "Bill from Wayne Supplies Co. Ref IN/512/2025. Date 2025-02-07. Items: 5 units pallet wrap. SUBTOTAL DUE: 49.95 USD. Please remit payment to account 8842-1190.",
+      "expected": {
+        "invoice_number": "IN/512/2025",
+        "vendor": "Wayne Supplies Co",
+        "quantity": "5",
+        "total_usd": "49.95"
+      }
+    },
+    {
+      "input": "Cyberdyne Systems -- invoice no INV63139 dated 2025-01-18. Additional handling: 1 x desk lamps, $7.57. Primary line: 144x hydraulic seals = US$ 3156.48. Please remit payment to account 8842-1190.",
+      "expected": {
+        "invoice_number": "INV63139",
+        "vendor": "Cyberdyne Systems",
+        "quantity": "144",
+        "total_usd": "3156.48"
+      }
+    },
+    {
+      "input": "Contact accounts@vendor.com for queries. Invoice INV-4891 | Vendor: Stark Industrial | 2025-04-16. Additional handling: 3 x sensor modules, $23.72. Line total for 24 floor mats: 732.00 USD (this is the amount due).",
+      "expected": {
+        "invoice_number": "INV-4891",
+        "vendor": "Stark Industrial",
+        "quantity": "24",
+        "total_usd": "732.00"
+      }
+    },
+    {
+      "input": "Acme Corp -- invoice no INV86578 dated 2025-09-05. Primary line: 50x sensor modules = 1453.50. Contact accounts@vendor.com for queries.",
+      "expected": {
+        "invoice_number": "INV86578",
+        "vendor": "Acme Corp",
+        "quantity": "50",
+        "total_usd": "1453.50"
+      }
+    },
+    {
+      "input": "Acme Corp -- invoice no 4316-A dated 2025-04-05. Primary line: 7x hydraulic seals = 179.34 USD. This invoice was generated automatically.",
+      "expected": {
+        "invoice_number": "4316-A",
+        "vendor": "Acme Corp",
+        "quantity": "7",
+        "total_usd": "179.34"
+      }
+    }
+  ]
+}

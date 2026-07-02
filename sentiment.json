@@ -1,0 +1,56 @@
+"""
+Five-task summary chart: quality per model across all tasks.
+
+Reads nothing external — the measured results are inlined below so the figure
+is reproducible from this file alone. Regenerate with:
+
+    python examples/plot_summary.py summary.png
+"""
+
+import sys
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Measured quality (mean score on each task's labeled examples).
+TASKS = ["News\nclassify", "Extraction\n(clean)", "Support\nintent",
+         "Extraction\n(messy)", "Code\ncorrectness"]
+HAIKU  = [88, 100, 96, 97, 70]
+SONNET = [91, 100, 96, 97, 100]
+OPUS   = [91, 100, 96, 96, 100]
+
+# Tidepool-style hues: cheapest -> flagship
+C_HAIKU, C_SONNET, C_OPUS = "#2a78d6", "#1baf7a", "#eda100"
+
+
+def main(out_path="summary.png"):
+    x = np.arange(len(TASKS))
+    w = 0.26
+    fig, ax = plt.subplots(figsize=(9, 5))
+
+    ax.bar(x - w, HAIKU,  w, label="Haiku 4.5 (cheapest)", color=C_HAIKU)
+    ax.bar(x,     SONNET, w, label="Sonnet 4.6 (mid)",     color=C_SONNET)
+    ax.bar(x + w, OPUS,   w, label="Opus 4.8 (flagship)",  color=C_OPUS)
+
+    ax.set_ylim(0, 108)
+    ax.set_ylabel("Quality (score on labeled examples)")
+    ax.set_title("Across five tasks, the flagship model was never on the frontier")
+    ax.set_xticks(x)
+    ax.set_xticklabels(TASKS, fontsize=9)
+    ax.yaxis.set_major_formatter(lambda v, _: f"{int(v)}%")
+    ax.grid(axis="y", alpha=0.3)
+    ax.set_axisbelow(True)
+    ax.legend(loc="lower left", fontsize=9, framealpha=0.9)
+
+    # Annotate the one place a gap opens.
+    ax.annotate("only code separates them\n(Haiku falls short)",
+                xy=(4 - w, 70), xytext=(2.5, 55),
+                fontsize=8.5, color="#52514e",
+                arrowprops=dict(arrowstyle="->", color="#898781"))
+
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    print(f"Wrote {out_path}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "summary.png")

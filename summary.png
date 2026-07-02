@@ -1,0 +1,18 @@
+{
+  "name": "sentiment",
+  "task_type": "classification",
+  "prompt_template": "Classify the sentiment of the text as exactly one of: positive, negative, neutral.\nRespond with only the label.\nText: {input}\nLabel:",
+  "subset_match": false,
+  "examples": [
+    {"input": "I absolutely love this product, best purchase ever!", "expected": "positive"},
+    {"input": "Worst experience of my life, do not buy.", "expected": "negative"},
+    {"input": "The package arrived on Tuesday.", "expected": "neutral"},
+    {"input": "Exceeded all my expectations, five stars.", "expected": "positive"},
+    {"input": "It broke after two days, very disappointed.", "expected": "negative"},
+    {"input": "It is a blue rectangular box.", "expected": "neutral"},
+    {"input": "Fantastic support team, resolved my issue instantly.", "expected": "positive"},
+    {"input": "Overpriced and underwhelming.", "expected": "negative"},
+    {"input": "The manual is written in English and Spanish.", "expected": "neutral"},
+    {"input": "Highly recommend to anyone considering it.", "expected": "positive"}
+  ]
+}
